@@ -1,0 +1,64 @@
+#------------------------------------------------------------
+# makefile.def : common definitions for makefile
+# Author       : hhao020
+# Date         : 2011-06-30
+#------------------------------------------------------------
+
+ifeq "$(strip $(SOURCES))" ""
+SOURCES := $(wildcard *.s) $(wildcard *.c) $(wildcard *.cpp) 
+endif
+
+BIN = bin/$(MAKE_RULE)
+PATHS = $(addprefix $(BIN)/, $(dir $(SOURCES)))
+
+OUT = $(PRJ_DIR)/$(BIN)/lib$(TARGET).a
+
+
+OBJECTS := $(addprefix $(BIN)/, $(addsuffix .o, $(basename $(SOURCES))))
+
+#default tool chains
+AR = ar -rcs
+AS = as
+CC = gcc
+RM = rm -rf
+
+COMM_DEFS = -g -DLINUX -DCPU64 \
+            -I./ \
+            -I./inc
+
+ASFLAGS   = -Wall -c
+CPP_FLAGS = 
+CFLAGS    = -Wall -g -MD -m64 -c  -fno-strict-aliasing
+
+LINK_OPT  = 
+
+ASFLAGS += $(SELF_ASFLAGS)
+
+
+..s.o:
+	$(AS) $(COMM_DEFS) $(ASFLAGS) $(SELF_ASFLAGS) $(SELF_INCLUDE) $(INCLIBS) $(SELF_DEFINE) $<
+
+$(BIN)/%.o : %.c
+	$(CC) $(COMM_DEFS) $(CFLAGS) $(SELF_CFLAGS) $(SELF_INCLUDE) $(INCLIBS) $(SELF_DEFINE) -c $< -o $@
+	
+$(BIN)/%.o : %.cpp
+	$(CC) $(COMM_DEFS) $(CPPFLAGS) $(SELF_CPPFLAGS) $(CFLAGS) $(SELF_CFLAGS) $(SELF_INCLUDE) $(INCLIBS) $(SELF_DEFINE) -c $<
+
+$(OUT) : $(OBJECTS)
+	$(AR) $(OUT) $^
+
+$(OBJECTS): | $(BIN)
+
+$(BIN):
+	mkdir -p $(PATHS)
+	
+-include $(OBJECTS:.o=.d)
+
+.PHONY : exe clean rebuild
+
+exe :  $(OUT)
+
+clean :
+	$(RM) $(BIN)/*.d $(BIN)/*.o /$(OUT)
+
+rebuild: clean exe
